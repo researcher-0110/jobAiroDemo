@@ -9,7 +9,7 @@ jobs:
   deploy-backend:
     name: Build & Deploy Backend
     runs-on: ubuntu-latest
-    environment: production
+    # no environment here — avoids duplicate deployment entries
 
     steps:
       - name: Checkout code
@@ -53,7 +53,7 @@ jobs:
   deploy-frontend:
     name: Build & Deploy Frontend
     runs-on: ubuntu-latest
-    environment: production
+    # no environment here — frontend failure won't block backend or caddy
 
     steps:
       - name: Checkout code
@@ -94,9 +94,9 @@ jobs:
   deploy-caddy:
     name: Reload Caddy
     runs-on: ubuntu-latest
-    environment: production
+    environment: production    # single deployment entry — shows here only
     needs: [deploy-backend, deploy-frontend]
-    if: always()
+    if: always()               # reload Caddy even if frontend failed
 
     steps:
       - name: Set up SSH
