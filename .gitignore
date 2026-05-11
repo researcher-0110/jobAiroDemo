@@ -1,0 +1,39 @@
+# Environment files — NEVER commit these
+.env
+.env.local
+.env.production
+.env.staging
+*.env
+
+# Frontend
+frontend/.next/
+frontend/node_modules/
+frontend/.npm/
+
+# Backend
+backend/__pycache__/
+backend/**/__pycache__/
+backend/*.pyc
+backend/.venv/
+backend/venv/
+
+# Scraper
+scraper/__pycache__/
+scraper/**/__pycache__/
+scraper/*.pyc
+scraper/.venv/
+scraper/venv/
+scraper/.scrapy/
+
+# Docker
+caddy/data/
+docker-compose.override.yml
+
+# OS
+.DS_Store
+*.swp
+*.swo
+
+# Logs
+*.log
+/var/log/

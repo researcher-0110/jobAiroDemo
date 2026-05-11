@@ -1,0 +1,35 @@
+# Production — auto HTTPS via Let's Encrypt
+# Domain: jobairo.testapps.help
+
+{
+	email {$CADDY_ACME_EMAIL:admin@jobairo.com}
+}
+
+jobairo.testapps.help {
+	handle /api/* {
+		reverse_proxy backend:8000
+	}
+
+	handle /health {
+		reverse_proxy backend:8000
+	}
+
+	handle {
+		reverse_proxy frontend:3000
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+		X-Frame-Options "SAMEORIGIN"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	encode gzip
+
+	log {
+		output stderr
+		level WARN
+	}
+}

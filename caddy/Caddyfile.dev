@@ -1,0 +1,23 @@
+# Local development — plain HTTP, no TLS
+# Mounted via docker-compose.override.yml
+
+:80 {
+	handle /api/* {
+		reverse_proxy backend:8000
+	}
+
+	handle /health {
+		reverse_proxy backend:8000
+	}
+
+	handle {
+		reverse_proxy frontend:3000
+	}
+
+	encode gzip
+
+	log {
+		output stderr
+		level INFO
+	}
+}
