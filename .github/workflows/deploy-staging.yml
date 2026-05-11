@@ -30,31 +30,30 @@ jobs:
             "cd /opt/jobairo/staging/jobAiroDemo && git pull origin ${{ github.ref_name }}"
 
       - name: Write .env from secrets
+        env:
+          DOTENV: |
+            CADDY_ACME_EMAIL=${{ secrets.CADDY_ACME_EMAIL }}
+            NEXT_PUBLIC_SITE_URL=${{ secrets.NEXT_PUBLIC_SITE_URL }}
+            NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+            NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+            NEXT_PUBLIC_BACKEND_URL=${{ secrets.NEXT_PUBLIC_BACKEND_URL }}
+            BACKEND_URL=http://backend:8000
+            SUPABASE_URL=${{ secrets.SUPABASE_URL }}
+            SUPABASE_SERVICE_KEY=${{ secrets.SUPABASE_SERVICE_KEY }}
+            DATABASE_URL=${{ secrets.DATABASE_URL }}
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            CORS_ORIGINS=${{ secrets.CORS_ORIGINS }}
+            ENVIRONMENT=staging
+            PROXY_URL=${{ secrets.PROXY_URL }}
+            PROXY_USER=${{ secrets.PROXY_USER }}
+            PROXY_PASS=${{ secrets.PROXY_PASS }}
+            SMTP_HOST=${{ secrets.SMTP_HOST }}
+            SMTP_USER=${{ secrets.SMTP_USER }}
+            SMTP_PASS=${{ secrets.SMTP_PASS }}
+            ALERT_EMAIL=${{ secrets.ALERT_EMAIL }}
         run: |
-          cat > /tmp/deploy.env << 'ENVEOF'
-          CADDY_ACME_EMAIL=${{ secrets.CADDY_ACME_EMAIL }}
-          NEXT_PUBLIC_SITE_URL=${{ secrets.NEXT_PUBLIC_SITE_URL }}
-          NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-          NEXT_PUBLIC_BACKEND_URL=${{ secrets.NEXT_PUBLIC_BACKEND_URL }}
-          BACKEND_URL=http://backend:8000
-          SUPABASE_URL=${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_KEY=${{ secrets.SUPABASE_SERVICE_KEY }}
-          DATABASE_URL=${{ secrets.DATABASE_URL }}
-          JWT_SECRET=${{ secrets.JWT_SECRET }}
-          CORS_ORIGINS=${{ secrets.CORS_ORIGINS }}
-          ENVIRONMENT=staging
-          PROXY_URL=${{ secrets.PROXY_URL }}
-          PROXY_USER=${{ secrets.PROXY_USER }}
-          PROXY_PASS=${{ secrets.PROXY_PASS }}
-          SMTP_HOST=${{ secrets.SMTP_HOST }}
-          SMTP_USER=${{ secrets.SMTP_USER }}
-          SMTP_PASS=${{ secrets.SMTP_PASS }}
-          ALERT_EMAIL=${{ secrets.ALERT_EMAIL }}
-          ENVEOF
-          base64 /tmp/deploy.env | ssh ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} \
+          printf '%s' "$DOTENV" | base64 | ssh ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} \
             "base64 -d > /opt/jobairo/staging/jobAiroDemo/.env"
-          rm /tmp/deploy.env
 
       - name: Build & deploy backend
         run: |
