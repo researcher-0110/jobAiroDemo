@@ -1,4 +1,5 @@
 'use client'
+export const dynamic = 'force-dynamic'
 import { useCallback, useState } from 'react'
 import { SearchBar } from '@/components/search/SearchBar'
 import { JobFilters } from '@/components/jobs/JobFilters'
