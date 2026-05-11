@@ -7,10 +7,10 @@ on:
       - develop
 
 jobs:
-  deploy-backend:
-    name: Build & Deploy Backend
+  deploy:
+    name: Deploy to Staging
     runs-on: ubuntu-latest
-    # no environment here — avoids duplicate deployment entries
+    environment: staging
 
     steps:
       - name: Checkout code
@@ -24,84 +24,41 @@ jobs:
       - name: Add host to known_hosts
         run: ssh-keyscan -H ${{ secrets.STAGING_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Build and deploy backend
+      - name: Pull latest code
+        run: |
+          ssh ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} \
+            "cd /opt/jobairo/staging/jobAiroDemo && git pull origin ${{ github.ref_name }}"
+
+      - name: Build & deploy backend
         run: |
           ssh ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'EOF'
             set -e
             cd /opt/jobairo/staging/jobAiroDemo
-            git pull origin ${{ github.ref_name }}
-
-            echo "Building backend..."
             docker compose build --no-cache backend
-
-            echo "Restarting backend..."
             docker compose up -d backend
-
-            echo "Waiting for backend to be healthy..."
             sleep 15
             curl -sf http://localhost:8000/health || (echo "Backend health check FAILED" && exit 1)
-
             echo "Backend deployed successfully."
           EOF
 
-  deploy-frontend:
-    name: Build & Deploy Frontend
-    runs-on: ubuntu-latest
-    # no environment here — frontend failure won't block backend or caddy
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up SSH
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.STAGING_SSH_KEY }}
-
-      - name: Add host to known_hosts
-        run: ssh-keyscan -H ${{ secrets.STAGING_HOST }} >> ~/.ssh/known_hosts
-
-      - name: Build and deploy frontend
+      - name: Build & deploy frontend
+        continue-on-error: true
         run: |
           ssh ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'EOF'
             set -e
             cd /opt/jobairo/staging/jobAiroDemo
-
-            echo "Building frontend..."
             docker compose build --no-cache \
               --build-arg NEXT_PUBLIC_SITE_URL=${{ secrets.NEXT_PUBLIC_SITE_URL }} \
               --build-arg NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }} \
               --build-arg NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }} \
               --build-arg NEXT_PUBLIC_BACKEND_URL=${{ secrets.NEXT_PUBLIC_BACKEND_URL }} \
               frontend
-
-            echo "Restarting frontend..."
             docker compose up -d frontend
-
             echo "Frontend deployed successfully."
           EOF
 
-      - name: Notify on frontend failure
-        if: failure()
-        run: echo "Frontend deployment FAILED for commit ${{ github.sha }} — backend is still running"
-
-  deploy-caddy:
-    name: Reload Caddy
-    runs-on: ubuntu-latest
-    environment: staging       # single deployment entry — shows here only
-    needs: [deploy-backend, deploy-frontend]
-    if: always()               # reload Caddy even if frontend failed
-
-    steps:
-      - name: Set up SSH
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.STAGING_SSH_KEY }}
-
-      - name: Add host to known_hosts
-        run: ssh-keyscan -H ${{ secrets.STAGING_HOST }} >> ~/.ssh/known_hosts
-
-      - name: Reload Caddy config
+      - name: Reload Caddy
+        if: always()
         run: |
           ssh ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} \
             "cd /opt/jobairo/staging/jobAiroDemo && docker compose exec caddy caddy reload --config /etc/caddy/Caddyfile"
