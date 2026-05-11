@@ -37,7 +37,7 @@ jobs:
             docker compose build --no-cache backend
             docker compose up -d backend
             sleep 15
-            curl -sf http://localhost:8000/health || (echo "Backend health check FAILED" && exit 1)
+            docker compose exec backend curl -sf http://localhost:8000/health || (echo "Backend health check FAILED" && exit 1)
             echo "Backend deployed successfully."
           EOF
 
