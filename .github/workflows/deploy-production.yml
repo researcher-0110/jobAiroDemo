@@ -6,8 +6,8 @@ on:
       - 'v*'
 
 jobs:
-  deploy:
-    name: Deploy to Hetzner Production
+  deploy-backend:
+    name: Build & Deploy Backend
     runs-on: ubuntu-latest
     environment: production
 
@@ -21,34 +21,93 @@ jobs:
           ssh-private-key: ${{ secrets.PROD_SSH_KEY }}
 
       - name: Add host to known_hosts
-        run: |
-          ssh-keyscan -H ${{ secrets.PROD_HOST }} >> ~/.ssh/known_hosts
+        run: ssh-keyscan -H ${{ secrets.PROD_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Deploy via SSH
+      - name: Build and deploy backend
         run: |
           ssh ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} << 'EOF'
             set -e
-            cd /opt/jobairo
-
-            echo "Pulling tag ${{ github.ref_name }}..."
+            cd /opt/jobairo/staging/jobAiroDemo
             git fetch --tags
             git checkout ${{ github.ref_name }}
 
-            echo "Building and restarting services..."
-            docker compose pull caddy
-            docker compose build --no-cache frontend backend
-            docker compose up -d --remove-orphans
+            echo "Building backend..."
+            docker compose build --no-cache backend
 
-            echo "Waiting for health checks..."
+            echo "Restarting backend..."
+            docker compose up -d backend
+
+            echo "Waiting for backend to be healthy..."
             sleep 15
+            curl -sf http://localhost:8000/health || (
+              echo "Backend health check FAILED — rolling back..."
+              git checkout -
+              docker compose build backend
+              docker compose up -d backend
+              exit 1
+            )
 
-            echo "Verifying backend health..."
-            curl -sf http://localhost:8000/health || (echo "Backend health check FAILED — rolling back" && git checkout - && docker compose up -d --build && exit 1)
-
-            echo "Production deployment complete: ${{ github.ref_name }}"
+            echo "Backend deployed: ${{ github.ref_name }}"
           EOF
 
-      - name: Notify on failure
-        if: failure()
+  deploy-frontend:
+    name: Build & Deploy Frontend
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.PROD_SSH_KEY }}
+
+      - name: Add host to known_hosts
+        run: ssh-keyscan -H ${{ secrets.PROD_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Build and deploy frontend
         run: |
-          echo "Production deployment FAILED for tag ${{ github.ref_name }}"
+          ssh ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} << 'EOF'
+            set -e
+            cd /opt/jobairo/staging/jobAiroDemo
+
+            echo "Building frontend..."
+            docker compose build --no-cache \
+              --build-arg NEXT_PUBLIC_SITE_URL=${{ secrets.NEXT_PUBLIC_SITE_URL }} \
+              --build-arg NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }} \
+              --build-arg NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }} \
+              --build-arg NEXT_PUBLIC_BACKEND_URL=${{ secrets.NEXT_PUBLIC_BACKEND_URL }} \
+              frontend
+
+            echo "Restarting frontend..."
+            docker compose up -d frontend
+
+            echo "Frontend deployed: ${{ github.ref_name }}"
+          EOF
+
+      - name: Notify on frontend failure
+        if: failure()
+        run: echo "Frontend deployment FAILED for tag ${{ github.ref_name }} — backend is still running"
+
+  deploy-caddy:
+    name: Reload Caddy
+    runs-on: ubuntu-latest
+    environment: production
+    needs: [deploy-backend, deploy-frontend]
+    if: always()
+
+    steps:
+      - name: Set up SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.PROD_SSH_KEY }}
+
+      - name: Add host to known_hosts
+        run: ssh-keyscan -H ${{ secrets.PROD_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Reload Caddy config
+        run: |
+          ssh ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} \
+            "cd /opt/jobairo/staging/jobAiroDemo && docker compose exec caddy caddy reload --config /etc/caddy/Caddyfile"
