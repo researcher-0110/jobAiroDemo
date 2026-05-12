@@ -44,7 +44,7 @@ export default function HomePage() {
       <section className="bg-gradient-to-br from-indigo-50 via-white to-purple-50 dark:from-zinc-900 dark:via-zinc-950 dark:to-zinc-900 py-16 px-4">
         <div className="max-w-4xl mx-auto text-center">
           <h1 className="text-4xl sm:text-5xl font-bold text-slate-900 dark:text-zinc-50 mb-4 tracking-tight">
-            Find Your Next{' '}
+            Find Your Next SUPERB{' '}
             <span className="text-indigo-600 dark:text-indigo-400">Dream Job</span>
           </h1>
           <p className="text-lg text-slate-600 dark:text-zinc-400 mb-8 max-w-2xl mx-auto">
