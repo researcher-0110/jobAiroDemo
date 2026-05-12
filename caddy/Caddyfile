@@ -14,6 +14,13 @@ jobairo.testapps.help {
 		reverse_proxy backend:8000
 	}
 
+	handle /dozzle* {
+		basicauth {
+			{$DOZZLE_USER} {$DOZZLE_PASSWORD_HASH}
+		}
+		reverse_proxy dozzle:8080
+	}
+
 	handle {
 		reverse_proxy frontend:3000
 	}

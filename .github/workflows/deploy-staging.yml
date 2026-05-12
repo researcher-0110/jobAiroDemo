@@ -51,6 +51,8 @@ jobs:
             SMTP_USER=${{ secrets.SMTP_USER }}
             SMTP_PASS=${{ secrets.SMTP_PASS }}
             ALERT_EMAIL=${{ secrets.ALERT_EMAIL }}
+            DOZZLE_USER=${{ secrets.DOZZLE_USER }}
+            DOZZLE_PASSWORD_HASH=${{ secrets.DOZZLE_PASSWORD_HASH }}
         run: |
           printf '%s' "$DOTENV" | base64 | ssh ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} \
             "base64 -d > /opt/jobairo/staging/jobAiroDemo/.env"

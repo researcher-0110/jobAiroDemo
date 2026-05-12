@@ -49,6 +49,18 @@ services:
       - scraper_jobs:/tmp/scrapy_jobs
     restart: no
 
+  dozzle:
+    image: amir20/dozzle:latest
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      DOZZLE_BASE: /dozzle
+      DOZZLE_NO_ANALYTICS: "true"
+      DOZZLE_LEVEL: info
+    networks:
+      - jobairo
+    restart: unless-stopped
+
   caddy:
     image: caddy:2-alpine
     env_file: .env
