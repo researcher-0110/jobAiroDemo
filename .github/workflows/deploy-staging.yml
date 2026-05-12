@@ -51,8 +51,6 @@ jobs:
             SMTP_USER=${{ secrets.SMTP_USER }}
             SMTP_PASS=${{ secrets.SMTP_PASS }}
             ALERT_EMAIL=${{ secrets.ALERT_EMAIL }}
-            DOZZLE_USER=${{ secrets.DOZZLE_USER }}
-            DOZZLE_PASSWORD_HASH=${{ secrets.DOZZLE_PASSWORD_HASH }}
         run: |
           printf '%s' "$DOTENV" | base64 | ssh ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} \
             "base64 -d > /opt/jobairo/staging/jobAiroDemo/.env"
@@ -105,6 +103,19 @@ jobs:
           printf '%s' "$DOTENV" | base64 | ssh ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} \
             "base64 -d > /opt/jobairo/staging/jobAiroDemo/scraper/.env"
 
+      - name: Write Dozzle users.yml
+        run: |
+          ssh ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} bash -s << 'SCRIPT'
+            set -e
+            mkdir -p /opt/jobairo/staging/jobAiroDemo/dozzle
+            docker run --rm amir20/dozzle generate \
+              "${{ secrets.DOZZLE_USER }}" \
+              --password "${{ secrets.DOZZLE_PASSWORD }}" \
+              --name "${{ secrets.DOZZLE_USER }}" \
+              > /opt/jobairo/staging/jobAiroDemo/dozzle/users.yml
+            echo "Dozzle users.yml written."
+          SCRIPT
+
       - name: Build & deploy backend
         run: |
           ssh ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'EOF'
@@ -133,7 +144,7 @@ jobs:
           ssh ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'EOF'
             set -e
             cd /opt/jobairo/staging/jobAiroDemo
-            docker compose up -d dozzle
+            docker compose up -d --force-recreate dozzle
             echo "Dozzle deployed successfully."
           EOF
 
