@@ -31,7 +31,7 @@ jobs:
             git checkout ${{ github.ref_name }}
           EOF
 
-      - name: Write .env from secrets
+      - name: Write root .env
         env:
           DOTENV: |
             CADDY_ACME_EMAIL=${{ secrets.CADDY_ACME_EMAIL }}
@@ -56,6 +56,54 @@ jobs:
         run: |
           printf '%s' "$DOTENV" | base64 | ssh ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} \
             "base64 -d > /opt/jobairo/staging/jobAiroDemo/.env"
+
+      - name: Write frontend .env
+        env:
+          DOTENV: |
+            NEXT_PUBLIC_SITE_URL=${{ secrets.NEXT_PUBLIC_SITE_URL }}
+            NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+            NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+            NEXT_PUBLIC_BACKEND_URL=${{ secrets.NEXT_PUBLIC_BACKEND_URL }}
+            BACKEND_URL=http://backend:8000
+        run: |
+          printf '%s' "$DOTENV" | base64 | ssh ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} \
+            "base64 -d > /opt/jobairo/staging/jobAiroDemo/frontend/.env"
+
+      - name: Write backend .env
+        env:
+          DOTENV: |
+            SUPABASE_URL=${{ secrets.SUPABASE_URL }}
+            SUPABASE_SERVICE_KEY=${{ secrets.SUPABASE_SERVICE_KEY }}
+            DATABASE_URL=${{ secrets.DATABASE_URL }}
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            CORS_ORIGINS=${{ secrets.CORS_ORIGINS }}
+            PROXY_URL=${{ secrets.PROXY_URL }}
+            PROXY_USER=${{ secrets.PROXY_USER }}
+            PROXY_PASS=${{ secrets.PROXY_PASS }}
+            SMTP_HOST=${{ secrets.SMTP_HOST }}
+            SMTP_USER=${{ secrets.SMTP_USER }}
+            SMTP_PASS=${{ secrets.SMTP_PASS }}
+            ALERT_EMAIL=${{ secrets.ALERT_EMAIL }}
+            ENVIRONMENT=production
+        run: |
+          printf '%s' "$DOTENV" | base64 | ssh ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} \
+            "base64 -d > /opt/jobairo/staging/jobAiroDemo/backend/.env"
+
+      - name: Write scraper .env
+        env:
+          DOTENV: |
+            SUPABASE_URL=${{ secrets.SUPABASE_URL }}
+            SUPABASE_SERVICE_KEY=${{ secrets.SUPABASE_SERVICE_KEY }}
+            PROXY_URL=${{ secrets.PROXY_URL }}
+            PROXY_USER=${{ secrets.PROXY_USER }}
+            PROXY_PASS=${{ secrets.PROXY_PASS }}
+            SMTP_HOST=${{ secrets.SMTP_HOST }}
+            SMTP_USER=${{ secrets.SMTP_USER }}
+            SMTP_PASS=${{ secrets.SMTP_PASS }}
+            ALERT_EMAIL=${{ secrets.ALERT_EMAIL }}
+        run: |
+          printf '%s' "$DOTENV" | base64 | ssh ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} \
+            "base64 -d > /opt/jobairo/staging/jobAiroDemo/scraper/.env"
 
       - name: Build & deploy backend
         run: |
