@@ -19,19 +19,8 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Build-time env vars (non-secret public vars only).
-# Secret/runtime vars are injected at container startup.
-ARG NEXT_PUBLIC_SITE_URL
-ARG NEXT_PUBLIC_SUPABASE_URL
-ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
-ARG NEXT_PUBLIC_BACKEND_URL
-
-ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
-ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
-ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
-ENV NEXT_PUBLIC_BACKEND_URL=$NEXT_PUBLIC_BACKEND_URL
-
-# Disable telemetry
+# .env is copied above (not excluded by .dockerignore) so Next.js reads
+# NEXT_PUBLIC_* vars natively during build. Only non-secret public vars live there.
 ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN npm run build
