@@ -136,6 +136,15 @@ jobs:
             echo "Frontend deployed: ${{ github.ref_name }}"
           EOF
 
+      - name: Deploy Dozzle
+        run: |
+          ssh ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} << 'EOF'
+            set -e
+            cd /opt/jobairo/staging/jobAiroDemo
+            docker compose up -d dozzle
+            echo "Dozzle deployed successfully."
+          EOF
+
       - name: Reload Caddy
         if: always()
         run: |
